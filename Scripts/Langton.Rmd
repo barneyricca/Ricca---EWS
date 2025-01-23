@@ -72,7 +72,7 @@ plot(ants_df$X,
      xlab = "Time",
      ylab = "X")
 lines(ants_df$Y,
-     col = "blue")
+     col = "green")
 
 ```
 
