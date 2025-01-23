@@ -1,0 +1,318 @@
+---
+title: "Forecast 2"
+author: "BPR"
+date: "2024-09-30"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Entropy
+
+$S = -k \sum{p_i log(p_i)}$
+
+Let's calculate some entropies
+
+Use k = 1 and log-base 2
+
+## BBBBBBBBBBBBBBBBBBBBB
+Only one value:
+```{r entropyOfConstantSequence}
+-(1)*log(1, base = 2)
+```
+
+## BBBBBBBBBQ
+Two values:
+p(B) = 0.9
+p(Q) = 0.1
+```{r}
+-(0.9)* log(0.9, base = 2) - (0.1) * log(0.1, base = 2)
+```
+
+## ABDBCBABCCBA
+
+```{r generalEntropyCalculations}
+c("A", "B", "D", "B", "C", "B",
+  "A", "C", "C", "B", "A") -> 
+  sequence1
+
+table(sequence1) / sum(table(sequence1)) ->
+  probs
+
+sum(-probs * log(probs, base = 2)) ->
+  S
+
+```
+
+Why do we care?
+
+Answer: Drawing on chemistry, we know that entropy goes through a maximum during a phase transition. Hence, look for an increase in entropy as an early warning signal of the change.
+
+Example:
+
+```{r}
+set.seed(42)
+
+sample(x = LETTERS[1:4],          # What to sample from
+       size = 20,                 # Sample size
+       replace = TRUE) -> phase1
+sample(LETTERS[5:8], 20, replace = TRUE) -> phase2
+
+c(phase1, phase2) -> sequence2
+
+
+table(sequence2) / sum(table(sequence2)) ->
+  probs
+
+# Windowed Entropy
+#
+# It is useful to create a sequence of windowed entropies, like this:
+
+5 -> win_size
+
+# Pre-allocate wS: It's a lot faster and you don't have to worry about
+#  "doesn't exist"
+vector(mode = "numeric", length = (length(sequence2) - win_size + 1)) ->
+  wS
+
+for(index in 1:(length(sequence2) - win_size + 1)) {
+  # Calculate the entropy for the terms in the window only.
+  sum(-probs[sequence2[index:(index+win_size-1)]] *    
+        log(probs[sequence2[index:(index+win_size-1)]],
+            base = 2)) ->
+    wS[index]
+}
+
+plot(wS)
+```
+There's more to do:
+a) inference
+b) Where in the window is the "entropy"?
+c) In this case, we knew all of the probabilities ahead of time. In other words, we knew what was coming. This is called "off-line." What we want is "online" calculations, where we calculate the entropy as we move along.
+d) What is the optimal window size?
+e) As we later discovered, what to do with many local maxima?
+
+## Online Calculations
+
+```{r}
+for(index in 1:(length(sequence2) - win_size + 1)) {
+  # The probabilities change, so must be calculated each time
+  table(sequence2[1:(index + win_size - 1)]) / # Use only the sequence to date
+    sum(table(sequence2[1:(index + win_size - 1)])) ->
+    probs
+  
+  # Calculate the entropy for the terms in the window only.
+  sum(-probs[sequence2[index:(index+win_size-1)]] *    
+        log(probs[sequence2[index:(index+win_size-1)]],
+            base = 2)) ->
+    wS[index]
+  
+  # print(probs)
+  # print(wS[index])
+}
+
+plot(wS)
+```
+So, this works, except...too many potential local maxima.
+
+One potential solution: Just use (a) local maxima that are also (b) the maximum to date.
+
+Does that solution work?
+
+Try another dataset (or several)
+```{r}
+# I did NOT reset the seed, so we'll get different values
+
+sample(x = LETTERS[1:4],          # What to sample from
+       size = 20,                 # Sample size
+       replace = TRUE) -> phase1
+sample(LETTERS[5:8], 20, replace = TRUE) -> phase2
+
+c(phase1, phase2) -> sequence2
+
+
+table(sequence2) / sum(table(sequence2)) ->
+  probs
+
+# Windowed Entropy
+#
+# It is useful to create a sequence of windowed entropies, like this:
+
+5 -> win_size
+
+# Pre-allocate wS: It's a lot faster and you don't have to worry about
+#  "doesn't exist"
+vector(mode = "numeric", length = (length(sequence2) - win_size + 1)) ->
+  wS
+
+for(index in 1:(length(sequence2) - win_size + 1)) {
+  # The probabilities change, so must be calculated each time
+  table(sequence2[index:(index + win_size - 1)]) / # Use only the sequence to date
+    sum(table(sequence2[index:(index + win_size - 1)])) ->
+    probs
+  
+  # Calculate the entropy for the terms in the window only.
+  sum(-probs[sequence2[index:(index+win_size-1)]] *    
+        log(probs[sequence2[index:(index+win_size-1)]],
+            base = 2)) ->
+    wS[index]
+  
+  # print(probs)
+  # print(wS[index])
+}
+
+plot(wS)
+```
+Oops...this isn't it.
+
+```{r}
+double_loop <- function(ss,                 # sample size
+                        ws) {               # Window size
+
+  sample(x = LETTERS[1:4],          # What to sample from
+       size = ss/2,                 # Sample size
+       replace = TRUE) -> phase1
+sample(LETTERS[5:8], ss/2, replace = TRUE) -> phase2
+
+c(phase1, phase2) -> sequence2
+
+
+# table(sequence2) / sum(table(sequence2)) ->
+#   probs
+
+# Windowed Entropy
+#
+# It is useful to create a sequence of windowed entropies, like this:
+
+# 5 -> win_size
+
+# Pre-allocate wS: It's a lot faster and you don't have to worry about
+#  "doesn't exist"
+vector(mode = "numeric", length = (length(sequence2) - ws + 1)) ->
+  wS
+
+for(index in 1:(length(sequence2) - ws + 1)) {
+  # The probabilities change, so must be calculated each time
+  table(sequence2[index:(index + ws - 1)]) / # Use only the sequence to date
+    sum(table(sequence2[index:(index + ws - 1)])) ->
+    probs
+  
+  # Calculate the entropy for the terms in the window only.
+  sum(-probs[sequence2[index:(index+ws-1)]] *    
+        log(probs[sequence2[index:(index+ws-1)]],
+            base = 2)) ->
+    wS[index]
+  
+  # print(probs)
+  # print(wS[index])
+}
+
+# Find the local maximum that is a maximum. That means the maximum that 
+#  isn't the first or last point.
+
+# Return the index of the entropy sequence that is the maximum.
+return(which(wS == max(wS[2:(length(wS) - 1)],
+           na.rm = TRUE)))
+  
+}
+  
+```
+
+
+```{r}
+20 -> R
+
+unlist(replicate(R, 
+          double_loop(ss = 40, ws = 10)))
+```
+
+What's the better idea? What might we try?
+
+So note the difference:
+
+- Calculating with probabilities from 1 to the end of the window doesn't work. (All the "change points" are in the early part of the sequence.)
+- Caclculating with probabilities only within the window gives great variation, but at least some of the "change points" are on both sides of the known change.
+
+# Problem 1:
+The first problem: How should we calculate entropy in a sequence of categorical data so that we can get a early warning signal (EWS) using entropy?
+
+Remember: The EWS is that entropy goes to a maximum (a little bit) before the change happens.
+
+What should we try instead?
+- We haven't made an exhaustive search of window sizes. (I know, from a paper by Fraser & Swinney, 1986) that window size matters. F&S used "autocorrelation function" to find a window size. (In R: acf(), pacf().)
+
+So, just do the "brute force" thing and try lots of different window sizes.
+
+The "dumb" way to do it:
+```{r}
+20 -> R
+
+unlist(replicate(R, double_loop(ss = 40, ws = 1)))
+unlist(replicate(R, double_loop(ss = 40, ws = 2)))
+unlist(replicate(R, double_loop(ss = 40, ws = 3)))
+unlist(replicate(R, double_loop(ss = 40, ws = 4)))
+unlist(replicate(R, double_loop(ss = 40, ws = 5)))
+unlist(replicate(R, double_loop(ss = 40, ws = 6)))
+unlist(replicate(R, double_loop(ss = 40, ws = 7)))
+unlist(replicate(R, double_loop(ss = 40, ws = 8)))
+unlist(replicate(R, double_loop(ss = 40, ws = 9)))
+unlist(replicate(R, double_loop(ss = 40, ws = 10)))
+
+```
+
+The "smart" way - use a loop
+```{r investigateDifferentWindowSizes}
+20 -> R
+
+list() -> entropy_ls
+# In R, to print something inside a loop, you must explicitly use "print()".
+for(ws2 in 1:20) {
+  unlist(replicate(R, double_loop(ss = 40, ws = ws2))) ->
+    entropy_ls[[ws2]]
+}
+
+```
+
+So, now we're ready to go:
+- Have ways of working with different entropy calculations: Write a function
+- Different window sizes: Write a loop
+- Add in anything else we want:
+- Look at it: hist()
+
+## How do we know entropy is changing?
+"Significant" change in entropy. How do know when something has changed "significantly"?
+
+In our series:
+ [1] "D" "A" "D" "D" "B" "B" "B" "C" "D" "A" "D" "A" "D" "B"
+[15] "A" "B" "A" "B" "C" "B" "G" "E" "G" "F" "G" "E" "E" "E"
+[29] "F" "G" "G" "G" "F" "H" "G" "F" "G" "G" "H" "G"
+
+We can calulate the 1st entropy, then the 2nd, and so on.
+
+Suppose: S[1] = 2.5 and S[2] = 2.6. We need variance to do the significance tests.
+
+mean + 1.96 * sd = upper 95% ci
+mean - 1.96 * sd = lower 95% ci
+
+mean(c(2.5, 2.6)) = 2.55
+upper 95% = 2.689
+lower 95% = 2.411
+
+Suppose S[3] = 2.8. This is OUTSIDE the 95% ci of the first TWO, so it is "significantly" different that the first two.
+
+We need to write some code to add to the double_loop() function to do the significance test.
+
+But there could be multiple "significant" entropies. So we could have multiple possible "significant maxima" in the sequence.
+
+
+
+
+
+
+
+
+
+
+

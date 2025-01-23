@@ -1,0 +1,92 @@
+---
+title: "Prior Data"
+author: "BPR"
+date: "2023-05-18"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Initialize Matrix
+```{r readData}
+load(file.choose())                         # Hurricane "NISData.RData"
+NIS_Data -> data_df
+rm(list = "NIS_Data")
+```
+These data are NOT from the PCL-5, so finding a clinicial cut-off for PTSD is arbitrary. Still, let's try it.
+
+
+```{r steadyState}
+# Steady state
+4 -> cutoff
+matrix(c(length(which(data_df$PTSD < cutoff)),
+         length(which(data_df$PTSD >= cutoff)))) ->
+  ss
+ss / sum(ss) ->
+  ss
+```
+Now, we have the following two equations:
+$(a-\lambda)s_1 + (1-a)s_2 = 0$
+$(1-d)s_1 + (d-\lambda)s_2) = 0$
+
+We want d > 0.5 (those in distress tend to stay in distress), and we know $s_1$ and $s_2$, so we solve the above for *a* and $\lambda$ numerically. After rearranging, we get:
+$a(s_1 - s_2) + \lambda(-s_1) = -s_2$
+$\lambda(-s_2) = (d-1)s_1 -ds_2$
+
+```{r initializeMarkov}
+# Prior for transitions
+0.7 -> d                                    # Fraction who remain distressed
+solve(a = matrix(c(ss[1] - ss[2],
+                   -ss[2],
+                   0,
+                   -ss[2]),
+                 ncol = 2,
+                 nrow = 2,
+                 byrow = TRUE),
+      b = c(-ss[2],
+            (d - 1) * ss[1] - d * ss[2])) ->
+  al
+
+matrix(c(al[1], 1 - al[1],
+         1-d, d),
+       ncol = 2,
+       nrow = 2,
+       byrow = TRUE) ->
+  M
+```
+
+# Updating
+Updating goes with two things:
+
+1. A state change could be reported
+2. The bounds on the entries of M could indicate a significant change
+
+
+
+# Second Data Set: RE-WIRE
+```{r}
+library(tidyverse)
+library(haven)
+# Start with the REWIRE imputed data
+read_spss(file.choose()) %>%
+  select(starts_with("pcl5")) ->
+  pcl_df
+paste0(colnames(pcl_df)[1:20],
+       "_s1") ->
+  colnames(pcl_df)[1:20]
+zap_label(pcl_df) -> pcl_df
+zap_labels(pcl_df) -> pcl_df
+zap_formats(pcl_df) -> pcl_df
+
+pcl_df %>%
+  mutate(PCL1 = rowSums(across(ends_with("_s1")))) %>%
+  mutate(PCL2 = rowSums(across(ends_with("_s2")))) %>%
+  mutate(PCL3 = rowSums(across(ends_with("_s3")))) %>%
+  mutate(PCL4 = rowSums(across(ends_with("_s4")))) %>%
+  mutate(PCL5 = rowSums(across(ends_with("_s5")))) %>%
+  mutate(PCL6 = rowSums(across(ends_with("_s6")))) ->
+  dum1
+```
+

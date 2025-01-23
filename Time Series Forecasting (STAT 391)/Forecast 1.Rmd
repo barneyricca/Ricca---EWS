@@ -1,0 +1,136 @@
+---
+title: "Forecasting"
+author: "BPR"
+date: "2024-09-20"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Early Warning Signals
+
+Can we tell the time series is going to change properties before it does so?
+
+Sometimes the answer is no
+```{r}
+rnorm(200) -> before
+rnorm(200, 1, 1) -> after
+
+c(before, after) ->
+  ts
+
+plot(ts,                   # Series of data
+     pch = 19,             # solid dots
+     cex = 0.5)            # make the dots half size
+
+```
+Can we tell from the data that something happened at index 200?
+
+```{r}
+1:400 -> t
+
+lm(ts~t) ->
+  lm1
+summary(lm1)
+
+```
+## Changepoints
+```{r}
+library(changepoint)
+cpt.mean(data = ts)
+
+```
+How can we choose between models? One method is to use "information criteria." Two most common: Akaike IC (AIC) and Bayesian IC (BIC). Essentially, all IC balance between how good the fit is (e.g, R^2) and how many parameters are used in the model (e.g., to avoid "overfitting").
+```{r}
+AIC(lm1)
+BIC(lm1)
+
+t^2 -> t2
+lm(ts ~ t + t2) ->
+  lm2
+summary(lm1)
+summary(lm2)
+
+```
+We choose between models by BIC
+```{r}
+BIC(lm1)
+BIC(lm2)
+```
+The lower BIC (or AIC) is the "better" model, even though it may have a lower R^2. As a general rule a difference in BIC of 3 or more is considered significant.
+
+Let's use our changepoint knowledge: Fit the first 200 data points and the last 200 data points separately
+```{r}
+
+lm(ts[1:200] ~ t[1:200]) -> lm3a
+lm(ts[201:400] ~ t[201:400]) -> lm3b
+
+BIC(lm3a)
+BIC(lm3b)
+```
+Total BIC of my split model is about 1200, which is significantly less than 1224.
+
+There's also "segmented regression" (package segmented)
+
+## Entropy
+
+Because we want to either (a) combine data series or (b) work with categorical data series, we turn to entropy.
+
+Example 1:
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+What's next? B
+Next one really is: B
+No surprise at all
+
+However, if the next one really is: W
+Lots of surprise!
+
+Entropy is what measures this surpise.
+
+Entropy is also in chemistry. (delta Q / T) When a system goes through a phase change (e.g., liquid to solid) at the transition, entropy "diverges." (I.e., entropy gets to be huge.) After the transition, entropy decreases. Therefore, we use increasing entropy as a sign of impending change. Entropy serves as an early warning signal.
+
+Here's a dataset:
+
+5th graders working on a Lego robot project. 4 students in the group.
+Video-recording and "coding" (i.e., "quantitizing"):
+- Information Exchange
+- Generating Ideas
+- Off-task
+etc.
+
+Also coded who spoke, to whom they spoke, etc.
+
+```{r}
+read.csv(file.choose()) -> ts1
+```
+
+Create a "windowed entropy" sequence from these data.
+
+entropy, $S = -k \sum{p_i log p_i}$
+
+Entropy and bits:
+
+I'm thinking of a number from 1 to 128. I want you to guess the number; I'll tell you "higher" or "lower."
+70
+30
+15
+20
+25
+23
+22
+21
+
+You took 8; it can be done in no more than 7 by this:
+64
+32
+16
+24
+20
+22
+21
+
+When we design experiments, we look for data that support something. That makes us more confident. However, that makes us more confident, but it doesn't give us any more information.
+
+

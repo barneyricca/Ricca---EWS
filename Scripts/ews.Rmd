@@ -1,0 +1,211 @@
+---
+title: "Early Warning Signals"
+author: "BPR"
+date: "`r Sys.Date()`"
+output: word_document
+---
+This document is mostly an introduction to *package:EWSmethods* followed by some how-to instructions on creating simulated time series data.
+```{r setup}
+#| include: FALSE                           # The "modern" way to do this.
+knitr::opts_chunk$set(echo = TRUE)
+
+c("conflicted",                             # resolve name conflicts
+#  "correlation",                            # multilevel correlations
+#  "corrplot",                               # plot correlation matrices
+  "earlywarnings",
+  "EWSmethods",
+  "here",
+#  "haven",                                  # read SPSS files
+  "knitr",                                  # formatting output
+#  "lmerTest",                               # multilevel modeling
+#  "ltm",                                    # Cronbach's alpha
+  "magrittr",                               # %$% pipe
+#  "ppcor",                                  # Partial correlations
+  "simts",                                  # Simulate time series
+  "tidyverse",                              # data wrangling
+  "tseries") ->    
+  package_names
+
+for(package_name in package_names) {        # For every package above,
+  if(!is.element(package_name,              #  if it isn't installed...
+                 installed.packages()[,1])) {
+    install.packages(package_name)          #  ...install it.
+  }
+  library(package_name,                     # Add every package above to the
+          character.only=TRUE,              #  environment.
+          quietly=TRUE,
+          verbose=FALSE)
+}
+
+i_am("./ews.Rmd")                           # Set the working directory
+
+rm(list=c("package_names",                  # Clean up
+          "package_name"))
+
+set.seed(04251939)                          # Set a default random seed
+
+# Stuff I prefer:
+options(show.signif.stars = FALSE)          # Don't conflate significance &
+                                            #  effect size
+options(digits = 3)                         # Round to 3 digits
+0.05 -> alpha                               # For p-values, confidence
+                                            #  intervals
+
+conflict_prefer("filter", "dplyr")          # Use dplyr verbs
+conflict_prefer("rename", "dplyr")
+conflict_prefer("select", "dplyr")
+conflicts_prefer(magrittr::`%$%`)           # Proper pipe to use
+```
+
+# Simulating Time Series Data
+Ultimately, we'll use "real world" data, but simulating data is very useful: We can simulate data with known properties and transition times, and then see if our approaches will find those times.
+
+Here's a simple simulated time series. It isn't very realistic, but it has all the pieces.
+```{r simpleSimulation}
+set.seed(42)                                # For testing, I set a seed in
+                                            #  each chunk.
+200 ->                                      # Length of the sequence  
+  pre_tran_len                              #  BEFORE the change.
+200 ->                                      # Length of the sequence 
+  post_tran_len                             #  AFTER the change
+
+data.frame("Y" = c(rnorm(pre_tran_len,      # Here, we use random data
+                         mean = 1,          #  with a mean of 1 for
+                                            #  BEFORE the transition.
+                         sd = 0.5),         # 
+                   rnorm(post_tran_len,     # Use random data with a 
+                         mean = 3,          #  mean of 3 for AFTER
+                         sd = 0.5)),
+           "time" = 1:400) ->               #
+```
+Now we have a data frame, sim_data_1, that we *know* changes after 200 time steps.
+
+Several
+
+## Simulate from an ARIMA model
+If you have an ARIMA model that you want to simulate from, arima.sim() will do the trick.
+
+## The simts package
+Look at the vignettes! It does a wide variety of situations. We'll occasionally want to do this by simulating 2 different series and combining them into one longer series. (Or perhaps we'll want to do multivariate stuff and use more than 2 series, combining some end-to-end and others cross-sectionally.)
+
+# Early Warning Signals (EWS)
+
+An early warning signal is anything in the time series data that can tip you off to an upcoming change in the qualitative or quantitative behavior of the time series. For example, let's look at the following:
+
+# Packages
+
+There are two packages - *earlywarnings* and *EWSmethods* that may be worth looking at. I'll leave it to you to go through them, but if they did what I needed, I'd use them and we wouldn't need this project. However, they don't and so I need this project. (I would also point out that, although they may be useful to you, everyone else knows about them too, so they wouldn't give you much advantage in the quantitative trading world.)
+
+Here are a few chunks to get you going, though:
+
+```{r circulation plot}
+data("simTransComms")                       # From the EWSmethods package
+data("CODrecovery")                         # From the EWSmethods package
+
+CODrecovery$scenario2 %$%                   # The magrittr "pipe" %$% allows
+                                            #  the plot command to read the
+                                            #  columns of this dataframe. The
+                                            #  equivalent is:
+                                        #  plot(CODrecovery$scenario2$time,
+                                        #       CODrecovery$scenario2$biomass,
+                                        #       type = 'l')
+  plot(time, biomass,
+       type = 'l')                          # plot a "line" (i.e., curve)
+```
+Clearly, something happens around time = 2050. If I look hard, tilt my head, and squint my eyes, I see the variation of the time series increase around 2040 (that big bump there). Is that real?
+
+This is a "univariate" time series, so let's see what we can find.
+
+```{r biomassEWS}
+CODrecovery$scenario2 %>%
+  select(time, biomass) %$%
+uniEWS(
+  data = .,                                 # Use the two columns passed in.
+  metrics = c("ar1",                        # Look at the AR coefficient
+              "cv",                         # Look at other coefficients
+              "SD",
+              "acf",
+              "rr",
+              "dr",
+              "skew",
+              "kurt"),
+  method = c("rolling"),                    # Use a "rolling" (a.k.a.
+                                            #  "sliding") window. See the
+                                            #  package vignette
+  winsize = 20,                             # This can be adjusted
+  burn_in = 5,
+  threshold = 2,
+  tail.direction = "one.tailed",
+  trait = NULL) ->
+  ews1                                      # Store the results
+```
+That's a lot of numbers. Plots should help:
+```{r}
+plot(ews1)
+```
+Because I used every metric, the plots are small; you can use a subset of indicators and get bigger plots. But here's what I notice: Something happens around 2050 in all the metric plots. In the acf ("autocorrelation function") plot, there is a sudden dip and return, in the AR1, there is a sudden increase and gradual slope down. All of these things are early warning signals.
+
+Now for the hard parts:
+
+1. There is a window size. You should play with that some and see what happens. Smaller would be nicer, it turns out, but there is a limit to how small you can get.
+2. Do we interpret the change at the beginning of the feature (e.g., the beginning of the acf dip), the extreme value, the end, or what?
+3. Do we know whether the time series is going to change going up or down?
+4. What do we do with really noisy data (such as I have in psychology studies)?
+
+These are questions we'd like to find out.
+
+There are some tests as well:
+```{r ewsTests}
+ews1$EWS$cor
+```
+What does this mean? 
+
+Let's look at another feature - notice that the method and trait parameters are different from before. The next chunk takes a bit (2-3 minutes) to run on my machine.
+
+```{r ewsTests}
+CODrecovery$scenario2 %>%
+  select(time, biomass) %$%
+uniEWS(
+  data = .,                                 # Use the two columns passed in.
+  metrics = c("ar1",                        # Look at the AR coefficient
+              "cv",                         # Look at other coefficients
+              "SD",
+              "acf",
+              "rr",
+              "dr",
+              "skew",
+              "kurt"),
+  method = c("expanding"),                  # "expanding" window
+  winsize = 20,                             # This can be adjusted
+  burn_in = 5,
+  threshold = 2,
+  tail.direction = "one.tailed",
+  trait = biomass) ->
+  ews2 
+plot(ews2,
+     y_lab = "Density",
+     trait_lab = "Mean mass")
+```
+
+How does that help? Well, it doesn't really. Not yet. We don't know what really is happening, so we don't know if this is predictive or just descriptive. Hence, we need something where we know the "true" answer. Try uniEWS() on the sim_data_1 data set.
+
+Let's also see what happens in the earlywarnings package:
+```{r qda1}
+qda_ews(                                    # Quick Detection Analysis EWS
+  timeseries = sim_data_1,                  # The data
+  param = NULL,
+  winsize = 50,                             # Will want to play with this
+  detrending = c("no"),                     # For now, just the raw data.
+  bandwidth = NULL,
+  boots = 100,                              # Bootstrapping
+  s_level = alpha,
+  cutoff = 0.05,
+  detection.threshold = 0.002,
+  grid.size = 50,
+  logtransform = FALSE,
+  interpolate = FALSE) ->
+  ews2                                      # Store the results
+
+```
+
+

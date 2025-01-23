@@ -1,0 +1,118 @@
+---
+title: "Forecast 4"
+author: "BPR"
+date: "2024-10-22"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Entropy
+
+$S = -k \sum{p_i log(p_i)}$
+
+Wiltshire, T. J., Butner, J. E., & Fiore, S. M. (2018). Problem-Solving Phase Transitions During Team Collaboration. Cognitive Science, 42(1), 129–167. https://doi.org/10.1111/cogs.12482
+
+
+Example: 
+```{r}
+c(13,13,8,6,13,8,6,8,12,14,3,2,1,3,3,13,
+  13,8,3,9,4,12,12,8,3,3,13,13,13,13,9,
+  8,12,3,9,8,9,13,4,3,8,12,4,3,9) ->
+  wbf
+```
+
+Multiple ways of doing this:
+
+- WBF: Choose a window size and use the probabilities only for codes in the window.
+- RJB: Use the probabilities from the first data point until the the end of the current window.
+
+In both cases, we must choose a window size.
+
+
+1. Choose a window size.
+2. Calculate the windowed entropy via WBF and the RJB approach.
+3. See where there might be transitions. (This might include doing some smoothing; the fraction of the data points involved in smoothing is another thing that you must choose and justify.)
+
+```{r wbf}
+5 -> win_size                               # Window size
+
+rep(0, length(wbf)) ->                      # Reserve space for the entropy
+  ent                                       #  vector.
+
+for(index in 1:(length(wbf) - win_size + 1)) { # for each data point
+  table(wbf[index:(index+win_size-1)]) ->   # Caclulate the probabilities in
+    probs                                   #  in the window.
+  probs / sum(probs) -> probs
+  sum(- probs * log(probs, 2)) ->             # Calculate the entropies
+    ent[index]
+}
+
+```
+
+Qualitatively, we see a similar graph. Why the differences?
+
+1. I used base-2 logs; they used natural logs.
+2. Adding a constant to the entropy changes nothing. (I use the constant 0.)
+3. You can define entropy with a multiplicative constant in it as well. (I choose the constant to be 1.)
+
+```{r}
+
+data.frame(t = 1:length(wbf),
+           code = wbf,
+           entropy = ent) %>%
+  filter(t <= 40) %>%                # Can't do the last win_size data points
+ggplot(aes(x = t,
+           y = entropy)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth()              # Another "researcher degree of freedom"
+```
+# More real data
+
+From Ricca, B. P., Bowers, N., & Jordan, M. E. (2020). Seeking Emergence Through Temporal Analysis of Collaborative-Group Discourse: A Complex-Systems Approach. The Journal of Experimental Education, 88(3), 431–447. https://doi.org/10.1080/00220973.2019.1628691
+
+
+
+```{r}
+read.table(file = "Data/RJB.txt") ->
+  rjb
+```
+
+Let's to RJB entropy:
+```{r}
+5 -> win_size
+
+rep(0, nrow(rjb)) ->
+  ent
+
+for(index in 1:(nrow(rjb) - win_size + 1)) {
+  table(rjb$V1[1:(index + win_size - 1)]) ->
+    probs
+  probs / sum(probs) -> probs
+
+  sum(-probs * log(probs,2)) ->
+    ent[index]
+}
+
+data.frame(t = 1:nrow(rjb),
+           code = rjb$V1,
+           entropy = ent) %>%
+  filter(t <= (nrow(rjb) - win_size)) %>% # Can't do the last win_size data points
+ggplot(aes(x = t,
+           y = entropy)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth() 
+```
+
+
+For you to play with:
+
+Do both WBF and RJB on these two datasets, using:
+a) Different window sizes (3:10)
+
+What do you notice? What does it make you think?

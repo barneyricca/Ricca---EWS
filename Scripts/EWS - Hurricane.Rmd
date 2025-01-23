@@ -1,0 +1,171 @@
+---
+title: "Analysis"
+author: "BPR"
+date: "`r Sys.Date()`"
+# Knit to another directory
+knit: (function(input, ...) {
+      rmarkdown::render(input,
+                        output_dir = "../Output")})
+output: 
+  word_document:
+    reference_docx: "~/APA template.docx"
+---
+
+```{r setup, include=FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if(!is.element("here",
+               installed.packages()[,1])) {
+  install.packages("here")
+}
+library("here", character.only=TRUE,
+        quietly=TRUE,verbose=FALSE)
+
+set_here()      # This helps with folder structure when shifting computers
+
+if(dir.exists(here("Scripts")) == FALSE) {
+  dir.create(here("Scripts"))
+}
+
+if(file.exists(here("Scripts/Setup.R")) == FALSE) {
+  file.copy(from = "~/OneDrive - University of Colorado Colorado Springs/Research/Setup.R",
+            to = here("Scripts/Setup.R"),
+            overwrite = FALSE)
+}
+
+source(here("Scripts/Setup.R"))
+```
+Bernard Ricca$^1$
+
+> Until full authorship is decided, the authors are listed in alphabetical order
+
+$^1$Lyda Hill Institute for Human Resilience \@ UCCS.
+\newpage
+
+# Abstract
+\newpage
+
+## Research Questions
+What is the appropriate form for a *narrow window, EMA-appropriate* EWS?
+
+# Methods
+In the following sections, we report how we determined our sample size, all data exclusions (if any), all manipulations, and all measures in the study. We used the *R Statistical Environment* (*R*; R Core Team, 2022) and the *RStudio Integrated Development Environment* (Posit team, 2022) for *R* for our data analysis. All data and code used in this study, along with system and environment information, are available at
+<https://github.com/barneyricca/PROJECT_NAME_GOES_HERE>.
+
+## Data
+```{r readData, include = FALSE, message = FALSE}
+load(here("../Data/Hurricane Data.RData"))  # NISresults
+```
+
+### Participants
+
+### Materials
+
+### Data Preprocessing
+This all took place as part of another project (Littleton et al., 2023)
+
+## Analytic Plan
+
+The process for determining the narrow-window, EMA-appropriate EWS is as follows:
+
+We begin with an prior estimate of the distribution of dwell times in the population. This can be derived from prior datasets, and will be updated live as data come in. However, this implies that the full range of attractors is known, which it currently isn't. We can estimate probabilities of categories from the rates in the general populations or subpopulation. (Get from Michael what those categories should be, such as suicidal ideation, attempted/completed suicide, etc., and )
+```{r priors, include = FALSE}
+data.frame("Category" = ,                   # Clinically significant
+                                            #  categories. Get from Michael.
+           # Put appropriate demographic categories here. Get these from
+           #  Michael
+           "Prevalence" = ) ->              # From population. Look up.
+  priors_df
+```
+From the probability mass distribution, we can construct an initial transition matrix
+```{r transition_priors, include = FALSE}
+matrix(0,
+       nrow = nrow(priors_df),
+       ncol = ncol(priors, df),
+       dimnames = c(
+         paste0(priors_df$Category,         # Rows are initial category of
+                "_initial"),                #  transitions
+         paste0(priors_df$Category,         # Columns are final category of
+                "_final"))) ->              #  transitions
+  risk_mat
+
+# Estimate the initial transition matrix. We know the long-term steady state.
+#  What is the best transition matrix? Well, we probably know some of the
+#  transition entries. (E.g., what percent of suicide attemps are completed?)
+#  Additionally, we can, from clinical experience, at least order the other
+#  row entries from most to least likely.)
+```
+
+
+The EMA data collection will refine the prior categories, separating them further into other dynamics. (This will be a bit like block matrices; see the paper on Network connections from SIAM DS 23.)
+
+For transitions that are identified, we can try fitting a Poisson to the dwell times or return times (and possibly the times by trajectory or by pseudo-attractor). That would give a good prior for the transition.
+
+Then, from the transition matrices, we can get a probability mass distribution of what the next day's state should be. That can update the prior?
+
+Then, work on the EWS to get a better posterior. This probably has the best sensitivity that we can get, because it will tell us not only about the transition but also a probability distribution of where the transition goes. Yes?
+
+
+- Will pseudo-attractors be useful to group responders?
+- Can trajectories with less (intra-phase) variation be developed?
+- Can the combination of longitudinal and cross-sectional EMA measures (within a single responder) be used in place of longer longitudinal data streams?
+- Need to do this online, not offline
+- Does the addition of "side information" (SIAM Review, March, 2023) help in any way?
+- What about using singular spectrum analysis (see Huffaker et al.) to distinguish noise from signal? This will require knowing something about the c.i. for eigenvalues and eigenvectors
+- Can we use the coarse graining of a scale to tell us about th elimits of SDIC/Lyapunov exponents (a la the work I did with Gilstrap)?
+- Can we use mixedture methods to distinguish noise from signal?
+- *Critical slowing down* and/or *long range ordering* vs. autocorrelation and cross-correlation
+- Wavelet dcomposition and/or functional data analysis
+- How can the maximally sensitive indicator be created?
+- Can we adapt PTDA to this?
+- Will have to assume a model connecting the EMA streams; is this a data assimilation problem? Dynamic mode decomposition?
+- Bayes will probably help
+- We are estimating a manifold of sorts; does the Wang (2009) - Ciu (2020) help in any way?
+
+Here's the approach:
+1. From a sample of EMA data, create pseudo-attractors. It will be important to give these pseudo-attractors the best silhouette possible, so I would think about some TDA (ToMaTo) clustering. These clusters will be updated with each extra time point (via a Bayesian / data asssimilation approach), and the next steps repeated.
+2. Within each cluster, the sample will give the mean (median or maximally likely are better bets) for autocorrelation, contemporaneous cross-correlation, entropy, and lag-1 panel models
+3. Deviations from the representaative signals - in the form of increasing (longer memory or stronger...probably a K-S on the distribution is the most sensitive) autocorrelation or stronger cross-correlation OR increasing entropy; notice that entropy and the others are at cross-purposes, so that needs some thinking.
+4. Those deviations that (a) reach significance and (b) reach some threshold of effect size will be considered EWS.
+
+
+So, first, look at the differences between:
+
+- autocorrelation (lag-1 or otherwise)
+- contemporaneous cross-correlation (both partial and not; both Pearson and distance)
+- windowed entropy
+- CLPM
+- Dynamic complexity (Viol et al.; the PTDA paper)
+- Time-frequency distribution (Viol et al.; the PTDA paper)
+- Recurrence plot
+- Singular spectrum analysis
+- Functional data analysis
+- the degree of fluctuations F and the distribution parameter D (Schiepek & Strum)
+- Network entropy (Caligiuri et al., 2023)
+
+After doing these, then look at noise distributions for additional clues.
+
+
+
+# Results
+
+# Discussion
+
+# Conclusions
+
+# References
+
+Littleton, H., Ricca, B., Allen, A. B., & Benight, C. (2023). Recovery and adjustment trajectories among Hurricane Florence survivors: Analysis utilizing nonlinear dynamic system modeling. Journal of Traumatic Stress, jts.22926. https://doi.org/10.1002/jts.22926
+
+Posit team (2022). RStudio: Integrated Development Environment for R. Posit Software, PBC, Boston, MA. URL http://www.posit.co/.
+
+R Core Team (2022). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/.
+\newpage
+
+# Tables
+\newpage
+
+# Figures
+\newpage
+
+# Supplemental Information

@@ -1,0 +1,610 @@
+Topic,Speaker
+TP,X
+OF,X
+IE,R
+TP,C
+OF,X
+TP,
+IE,
+OF,C
+UC,R
+TP,X
+TP,C
+TP,R
+TP,C
+TP,H
+TP,X
+TP,
+TP,R
+IE,C
+IE,R
+ ,C
+ ,
+OF,X
+OF,R
+OF,X
+OF,C
+UC,R
+ ,C
+IE,X
+TP,H
+ ,X
+IE,C
+GO,X
+EA/GO,H
+IE,X
+ ,H
+GO,X
+TP,R
+GO,H
+GO,C
+TP,H
+IE,C
+EA,H
+EA,X
+KS,C
+IE,X
+IE,C
+GO,R
+EA,X
+IE,H
+IE,X
+IE,C
+IE,H
+TP,R
+TP,H
+TP,R
+IE,C
+GO,X
+TP,C
+TP,X
+TP,H
+IE,C
+ ,H
+TP,C
+TP,X
+IE,
+ ,
+TP,
+TP,C
+ ,X
+TP,H
+TP,X
+ ,C
+ ,R
+EA,R
+EA,X
+OF,H
+EA,C
+ ,R
+ ,C
+EA,X
+KS,
+TP,
+KS,H
+TP/IE,R
+GO,H
+TP,R
+IE,H
+UC,X
+IE,R
+TP,H
+IE,X
+TP,H
+IE/TP,R
+TP,X
+TP,R
+IE,C
+IE,X
+IE,T
+IE,X
+IE,C
+TP,H
+IE,C
+IE,H
+KS,X
+KS,H
+ ,X
+ ,R
+ ,H
+OF,R
+OF,X
+ ,C
+OF,R
+ ,C
+OF,H
+OF,C
+ ,R
+ ,C
+ ,R
+ ,C
+ ,X
+OF,C
+OF,X
+OF,C
+OF,R
+ ,X
+OF,R
+ ,C
+IE,H
+TP,X
+TP,R
+TP,X
+TP,C
+ ,H
+TP,R
+IE,X
+IE,H
+OF,C
+TP,X
+TP,R
+EA,C
+GO,C
+ ,R
+ ,H
+ ,C
+ ,X
+OF,C
+ ,X
+EA,C
+OF,X
+OF,C
+OF,X
+OF,H
+OF,C
+OF,X
+OF,C
+OF,X
+OF,
+OF,R
+OF,H
+OF,X
+OF,C
+OF,X
+OF,C
+OF,X
+OF,C
+OF,X
+OF,R
+OF,C
+OF,X
+OF,C
+IE,X
+KS,H
+TP,C
+IE,X
+IE,H
+IE,R
+IE,X
+TP,X
+TP,R
+TP,H
+TP,H
+TP,R
+TP,C
+TP,R
+UC,C
+TP,X
+TP,H
+OF,X
+IE,C
+IE,X
+IE,C
+IE,H
+ ,C
+GO,H
+EA,H
+EA,R
+EA,X
+EA,C
+ ,R
+OF,C
+IE,X
+ ,C
+IE,R
+ ,X
+ ,H
+GO,C
+ ,H
+GO,R
+EA,X
+ ,H
+TP,X
+IE,H
+TP,C
+TP,X
+IE,X
+ ,H
+IE,
+IE,H
+OF,C
+OF,R
+OF,C
+OF,R
+UC,X
+IE,H
+OF,C
+OF,R
+IE,
+OF,C
+OF,R
+OF,C
+OF,R
+OF,C
+OF,R
+OF,X
+OF,R
+OF,C
+IE,H
+KS,X
+OF,C
+OF,R
+ ,H
+ ,X
+OF,C
+OF,X
+OF,C
+TP,R
+UC,
+IE,C
+IE,X
+UC,H
+ ,X
+ ,R
+ ,H
+ ,R
+TP,X
+TP,H
+ ,X
+ ,R
+ ,X
+TP,R
+ ,C
+ ,R
+ ,C
+TP,H
+OF,C
+OF,C
+OF,
+OF,R
+TP,H
+TP,R
+TP,H
+TP,C
+TP,R
+TP,C
+TP,X
+ ,C
+TP,X
+IE,H
+TP,X
+TP,R
+ ,C
+OF,R
+IE,X
+TP,X
+TP,R
+OF,C
+TP,R
+OF,C
+TP,H
+ ,R
+OF,X
+ ,R
+OF,C
+TP,H
+OF,R
+OF,C
+OF,H
+OF,C
+OF,X
+OF,C
+OF,X
+OF,R
+OF,C
+OF,X
+OF,X
+OF,
+OF,X
+OF,C
+ ,H
+OF,C
+ ,X
+OF,R
+TP,H
+OF,R
+OF,X
+OF,C
+OF,R
+OF,C
+OF,R
+OF,C
+TP,H
+IE,X
+IE,H
+IE,R
+UC,H
+ ,X
+IE,H
+TP,H
+IE,C
+IE,X
+TP,R
+TP,
+TP,
+OF,C
+OF,R
+IE,H
+IE,X
+UC,C
+TP,R
+IE,H
+TP,H
+ ,R
+TP,H
+TP,R
+ ,H
+TP,R
+UC,X
+OF,C
+OF,X
+OF,C
+ ,H
+OF,X
+IE,H
+GO,C
+ ,X
+OF,
+OF,
+IE,H
+OF,R
+OF,C
+OF,R
+OF,R
+OF,X
+OF,C
+TP,X
+OF,R
+ ,X
+OF,R
+ ,X
+OF,C
+TP,X
+TP,R
+TP,X
+TP,R
+TP,H
+TP,R
+TP,H
+ ,X
+ ,H
+ ,R
+OF,X
+OF,H
+TP,H
+IE,X
+IE,H
+TP,X
+UC,C
+IE,X
+OF,R
+UC,C
+OF,R
+OF,H
+OF,R
+ ,C
+OF,R
+OF,C
+OF,R
+OF,C
+UC,H
+UC,R
+OF,C
+UC,R
+UC,X
+ ,H
+TP,
+TP,
+TP,
+IE,
+IE,
+IE,
+IE,
+IE,
+IE,
+IE,
+TP,
+IE,
+ ,
+IE,
+IE,
+ ,
+ ,
+TP,
+ ,
+TP,
+TP,
+KS,
+KS,
+ ,
+IE,
+TP,
+TP,
+IE,
+IE,
+TP,
+TP,
+TP,
+TP,X
+IE,H
+ ,R
+IE,C
+IE,H
+IE,X
+IE,R
+IE,C
+ ,X
+IE,R
+IE,C
+TP,R
+IE,C
+IE,R
+IE,C
+KS,R
+IE,C
+ ,R
+IE,C
+ ,R
+KS,C
+KS,R
+IE,C
+ ,R
+TP,C
+OF,X
+GO,C
+IE,R
+IE,X
+TP,C
+TP,H
+OF,C
+OF,X
+TP,C
+TP,
+OF,
+IE,
+TP,
+TP,
+TP,
+TP,
+GO,C
+EA,R
+EA,X
+ ,C
+UC,X
+ ,R
+OF,H
+GO,C
+EA,R
+IE,C
+EA,R
+ ,X
+EA,R
+ ,
+EA,C
+EA,X
+EA,H
+EA,C
+IE,R
+IE,C
+UC,R
+IE,X
+IE,C
+TP,H
+TP,R
+TP,H
+ ,X
+TP,R
+ ,H
+TP,
+TP,R
+GO,C
+TP,X
+TP,C
+TP,H
+ ,C
+TP,H
+UC,C
+ ,H
+IE,R
+IE,H
+EA,H
+TP,R
+EA,C
+IE,R
+KS,H
+KS,R
+GO,X
+GO,C
+ ,R
+TP,R
+TP,X
+TP,R
+IE,C
+TP,H
+IE,X
+TP,H
+EA,C
+ ,R
+IE,X
+EA,C
+EA,R
+TP,X
+TP,C
+TP,H
+GO,C
+TP,R
+TP,X
+ ,R
+EA,C
+EA,X
+TP,R
+TP,C
+TP,R
+TP,H
+TP,R
+IE,H
+IE,X
+IE,R
+IE,H
+IE,R
+TP,H
+IE,X
+TP,C
+IE,X
+ ,H
+UC,C
+ ,X
+EA,R
+UC,X
+IE,R
+TP,H
+IE,R
+IE,X
+EA,C
+IE,X
+GO,C
+TP/IE,R
+IE,H
+ ,R
+TP,H
+EA,X
+IE,H
+IE,X
+GO,H
+GO,X
+TP,H
+EA,R
+EA,H
+GO,X
+IE,H
+IE,X
+TP,R
+GO,X
+TP,R
+TP,C
+TP,X
+IE,R
+IE,X
+TP,R
+TP,H
+IE,X
+IE,H
+IE,R
+IE,H
+TP,T
+IE,X
+IE,H
+OF,R
+IE,X
+OF,R
+TP,

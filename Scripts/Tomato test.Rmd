@@ -1,0 +1,701 @@
+---
+title: "Tomato test rmd"
+author: "BPR"
+date: "2023-05-09"
+output: word_document
+---
+
+# GUDHI
+ToMATo is implemented in Python: https://gudhi.inria.fr/
+
+The original ToMATo: https://geometrica.saclay.inria.fr/data/ToMATo/
+
+# Set up Python
+There's a bunch of stuff to be done once per project.
+
+## Configure Python
+[Configure Python for R work](https://support.posit.co/hc/en-us/articles/360023654474-Installing-and-Configuring-Python-with-RStudio) 
+
+This requires some terminal work in the current folder. Four steps to get everything ready; I think these only need be done once per project.
+
+virtualenv my_env
+source my_env/bin/activate
+which python
+pip install numpy pandas matplotlib scikit-learn gudhi
+
+## Configure reticulate
+
+1. To configure reticulate to point to the Python executable in your virtualenv, create a file in your project directory called .Renviron with the following contents:
+
+RETICULATE_PYTHON=my_env/bin/python
+
+2. Restart your R session for the setting to take effect.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reticulate)
+py_config()             # Verifies reticulate configuration is correct
+```
+
+Should go through the [Posit RStudio Python tutorial](https://docs.posit.co/tutorials/user/using-python-with-rstudio-and-reticulate/)
+
+# ToMATo Examples
+
+```{r}
+# rgudhi stuff:
+# https://github.com/LMJL-Alea/rgudhi
+
+# The next might need to be after the "import gudhi" above:
+library(rgudhi) 
+
+# Now, to create some data and do the persistence of it
+n <- 10
+X <- seq_circle(n)
+ac <- AlphaComplex$new(points = X)
+st <- ac$create_simplex_tree()
+st$persistence()
+```
+Since it works so far...let's try a clustering. See https://search.r-project.org/CRAN/refmans/rgudhi/html/Tomato.html
+
+```{r}
+X <- seq_circle(100)
+cl <- Tomato$new()
+cl$fit(X)
+cl$fit_predict(X)
+#cl$set_n_clusters(2)
+cl$get_labels()
+```
+
+With some other data
+```{r}
+read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/00292/Wholesale%20customers%20data.csv") -> dum1
+
+# Convert dum1 from df to a list of a bunch of things:
+
+matrix(NA,
+       ncol = 6,
+       nrow = nrow(dum1)) -> 
+  biz_mat
+for(index in 3:ncol(dum1)) {
+  dum1[, index] / max(dum1[, index]) -> 
+    biz_mat[, index - 2]
+}
+
+list() -> biz_ls
+for(index in 1:nrow(biz_mat)) {
+  as.double(
+    unname(
+    as.vector(
+      unlist(
+        biz_mat[index,])))) ->
+    biz_ls[[index]]
+}
+#biz_ls -> X
+cl <- Tomato$new()
+cl$fit(biz_ls)
+cl$fit_predict(biz_ls)
+#cl$set_n_clusters(2)
+cl$get_labels()
+
+cl$plot_diagram()
+table(cl$get_labels())
+
+```
+# Silhouette
+Now, to check the silhoutte of things. Be careful: The clustering silhouette is not the same as the persistence silhouette.
+```{r}
+# Get a distance matrix
+library(parallelDist)
+parDist(as.matrix(biz_mat)) ->
+  diss_mat
+
+
+library(cluster)                            # For silhouette()
+
+# Original has 8 clusters
+cl <- Tomato$new(n_clusters = 7)
+cl$fit(biz_ls)
+cl$fit_predict(biz_ls)
+#cl$set_n_clusters(2)
+table(cl$get_labels())
+ #  0   1   2   3   4   5   6   7 
+ # 67  65  25  46  62  28 125  22 
+# 
+#   0   1   2   3   4   5   6 
+#  67  65  53  46  62 125  22 
+# 
+#   0   1   2   3   4   5 
+#  67  65  53 108 125  22 
+# 
+#   0   1   2   3   4 
+# 120  65 108 125  22 
+# 
+#   0   1   2   3 
+# 120  65 130 125 
+# 
+#   0   1   2 
+# 250  65 125 
+# 
+#   0   1 
+# 315 125 
+
+cl$plot_diagram()
+
+as.matrix(
+  silhouette(x = cl$fit_predict(biz_ls),    # Class membership
+           dist = diss_mat)) ->             # distance matrix
+  biz_sil
+length(which(biz_sil[, 3] < 0))
+# 7 -> 151
+# 6 -> 158
+# 5 -> 142
+# 4 -> 167
+# 3 -> 193
+# 2 -> 33
+
+
+hist(as.numeric(biz_sil[,3]),
+     breaks = 20,
+     main = "Histogram of business cluster silhouettes",
+     xlab = "Silouette values")
+```
+The silhouette doesn't look very good. Let's compare with the iris dataset
+```{r}
+data(iris)
+
+list() -> iris_ls
+for(index in 1:nrow(iris)) {
+  as.double(
+    unname(
+    as.vector(
+      unlist(
+        iris[index,1:4])))) -> 
+          iris_ls[[index]]
+}
+
+cl <- Tomato$new()
+cl$fit(iris_ls)
+cl$fit_predict(iris_ls)
+cl$get_labels()
+
+cl$set_n_clusters(3)
+cl$get_labels()
+
+
+cl$plot_diagram()
+
+parDist(as.matrix(iris[,1:4])) ->
+  diss_mat
+
+as.matrix(
+  silhouette(x = cl$fit_predict(iris_ls),    # Class membership
+           dist = diss_mat)) ->             # distance matrix
+  iris_sil
+
+table(cl$get_labels())
+
+hist(as.numeric(iris_sil[,3]),
+     breaks = 20,
+     main = "Histogram of iris cluster silhouettes",
+     xlab = "Silouette values")
+```
+OK, so there are some problems with ToMATo. Let's try other clustering
+```{r}
+parallelDist(biz_mat) ->
+  diss_mat
+
+set.seed(42)
+6 -> numClust
+
+kmeans(biz_mat,
+       centers = numClust,
+       nstart = 10) ->
+  biz_cl
+table(biz_cl$cluster)
+# 
+#   1   2 
+# 394  46 
+# 
+#   1   2   3 
+# 338  61  41 
+# 
+#   1   2   3   4 
+# 286  10  51  93 
+# 
+#   1   2   3   4   5 
+# 278  56  93   3  10
+# 
+#   1   2   3   4   5   6 
+# 245  54   3  29   5 104
+# 
+#   1   2   3   4   5   6   7 
+#   2  97  28  11 100   5 197 
+# 
+#   1   2   3   4   5   6   7   8 
+# 111  93   5   6  28 145  50   2 
+
+
+as.matrix(
+  silhouette(x = biz_cl$cluster,    # Class membership
+           dist = diss_mat)) ->             # distance matrix
+  biz_sil
+length(which(biz_sil[,3] < 0)) 
+# 8 -> 45
+# 7 37
+# 6 17
+# 5 25
+# 4 23
+# 3 29
+# 2 11
+
+hist(biz_sil[,3],
+     breaks = 20)
+```
+# Refinement 1
+```{r, eval = FALSE}
+# Use old centers and re-cluster
+set.seed(42)
+
+kmeans(biz_mat,
+       centers = biz_cl$centers,
+       nstart = 10) ->
+  biz_cl2
+table(biz_cl2$cluster)
+# 
+#   1   2 
+# 394  46 
+# 
+#   1   2   3 
+# 338  61  41 
+# 
+#   1   2   3   4 
+# 286  10  51  93 
+# 
+#   1   2   3   4   5 
+# 278  56  93   3  10
+# 
+#   1   2   3   4   5   6 
+# 245  54   3  29   5 104
+# 
+#   1   2   3   4   5   6   7 
+#   2  97  28  11 100   5 197 
+# 
+#   1   2   3   4   5   6   7   8 
+# 111  93   5   6  28 145  50   2 
+
+
+as.matrix(
+  silhouette(x = biz_cl2$cluster,    # Class membership
+           dist = diss_mat)) ->             # distance matrix
+  biz_sil2
+length(which(biz_sil2[,3] < 0)) 
+# 8 -> 45
+# 7 37
+# 6 17
+# 5 25
+# 4 23
+# 3 29
+# 2 11
+
+hist(biz_sil2[,3],
+     breaks = 20)
+
+biz_cl2$centers
+# Does the same thing as before
+```
+# Refining Clusters
+Try identifying the centers, determining which points are mis-classified, and reclassify them.
+
+```{r, eval = FALSE}
+# First attempt: just move the mix-classified points
+which(biz_sil[,3] < 0) ->
+  mis_class
+biz_sil[mis_class,2] ->
+  biz_cl$cluster[mis_class]
+
+as.matrix(
+  silhouette(x = biz_cl$cluster,    # Class membership
+           dist = diss_mat)) ->             # distance matrix
+  biz_sil_ref
+
+length(which(biz_sil[,3] < 0))
+length(which(biz_sil_ref[,3] < 0))
+
+hist(biz_sil[,3],
+     breaks = 20)
+hist(biz_sil_ref[,3],
+     breaks = 20)
+
+# Because silhouette recalculates means, it does not help.
+# Plus, the "neighbor" may not be the appropriate
+# reclassification.
+
+```
+
+
+```{r}
+# By hand
+which(biz_sil[,3] < 0) ->
+  mis_class
+biz_cl$cluster[mis_class] ->
+  orig_class ->
+  new_class
+
+# In biz_cl$centers, the first COLUMN is the first variable,
+#  while the first ROW is the first cluster.
+for(pt in 1:length(mis_class)) {
+  rep(NA, length = ncol(biz_cl$centers)) ->
+    new_dist
+  for(cl in 1:ncol(biz_cl$centers)) {
+    if(cl != biz_cl$cluster[mis_class[pt]]) {
+      sum((biz_mat[mis_class[pt],] -
+        biz_cl$centers[cl,]) ^ 2,
+        na.rm = TRUE) ->
+        new_dist[cl]
+    }
+  }
+  which(new_dist == min(new_dist,
+                        na.rm = TRUE)) ->
+    new_class[pt]
+}
+
+biz_cl ->
+  biz_ref_cl
+new_class ->
+  biz_ref_cl$cluster[mis_class]
+
+as.matrix(
+  silhouette(x = biz_ref_cl$cluster,    # Class membership
+           dist = diss_mat)) ->             # distance matrix
+  biz_ref_sil
+length(which(biz_sil[,3] < 0)) 
+
+hist(biz_ref_sil[,3],
+     breaks = 20)
+
+```
+
+Still no good. Is there a better way to cluster these things?
+
+Or, just drop the negative silhouettes? (In the hurrricane data, that would be dropping like 1/4 of the data. In the business case here, it would be dropping about 4% of the data.)
+
+Two things occur to me:
+
+1. Perhaps we should look for clustering that minimizes the overlap between the enclosing hyper-ellipsoids; anything outside of an ellipsoid is could be treated as a transient. (I know, not all attractors are elliptical, but this only assumes that the attractors are resolved well enough for the enclosing hyper-ellipsoids to be separated.)
+2. Points with negative silhouette values could be taken to be transients. This is a bit of a stretch, given that 20-25% of the hurricane points were transients. However, it is also possible that those data, given the ongoing nature of the situation, my spend a lot of time not in an attractor.
+
+Notes on #2:
+
+- The shape of basins of attraction may not be convex
+- What is the difference between the attractor and the basin of attraction, given "transients" that lie in the basin of attraction but outside the attractor? How can we distinguish the difference empirically?
+
+# Closer look at mis-classification
+Surely, some 2-d slice (or collection of 2-d slices) will show the problem with mis-classification. For the 6-dimension business data, this means 15 slices Let's look at all of them
+```{r}
+library(tidyverse)
+# biz_cl$cluster for cluster membership
+# biz_mat is a 440 row x 6 column data matrix.
+as.data.frame(biz_mat) ->
+  biz_df
+colnames(dum1)[3:8] ->
+  colnames(biz_df)
+biz_cl$cluster ->
+  biz_df$cluster
+biz_sil[,3] ->
+  biz_df$silhouette
+rep(FALSE, nrow(biz_df)) ->
+  biz_df$MisClass
+TRUE -> biz_df$MisClass[mis_class]
+```
+
+
+
+```{r}
+list() -> slice_ls
+1 -> index
+for(i in 1:5) {
+  for(j in (i+1):6) {
+   plot(biz_df[biz_df$cluster %in% c(1:3,5),i], 
+        biz_df[biz_df$cluster %in% c(1:3,5),j],
+        xlab = paste("Dimension", i), 
+        ylab = paste("Dimension", j),
+        col = biz_df$cluster[biz_df$cluster %in% c(1:3,5)],
+        pch = 16 + biz_df$MisClass[biz_df$cluster %in% c(1:3,5)],
+        cex = 0.6) ->
+      slice_ls[[index]]
+    index + 1 -> index
+  }
+}
+
+```
+Colors: (1) black, (2) red-ish, (3) green, (4) blue, (6) skyblue, (6) magenta, (7) yellow, (8) grey
+```{r eval = FALSE}
+8 -> n
+plot(1:n, 1:n,
+     pch = 16,
+     cex = 2,
+     col = 1:n)
+```
+
+Using fewer dimensions might help: It appears that dimensions 1 and 5 account for most of the variation. Let's see
+```{r}
+parallelDist(biz_mat[,c(1,5)]) ->
+  diss_mat_red
+
+set.seed(42)
+6 -> numClust
+
+kmeans(biz_mat[,c(1,5)],
+       centers = numClust,
+       nstart = 100) ->
+  biz_cl
+table(biz_cl$cluster)
+# 
+#   1   2 
+#  71 369 
+# 
+#   1   2   3 
+#  30  72 338  
+# 
+#   1   2   3   4 
+# 286  10  51  93 
+# 
+#   1   2   3   4   5 
+# 278  56  93   3  10
+# 
+#   1   2   3   4   5   6 
+# 245  54   3  29   5 104
+# 
+#   1   2   3   4   5   6   7 
+#   2  97  28  11 100   5 197 
+# 
+#   1   2   3   4   5   6   7   8 
+# 111  93   5   6  28 145  50   2 
+
+
+as.matrix(
+  silhouette(x = biz_cl$cluster,    # Class membership
+           dist = diss_mat_red)) ->             # distance matrix
+  biz_sil
+length(which(biz_sil[,3] < 0)) 
+# 8 12
+# 7 9
+# 6 6
+# 5 6
+# 4 5
+# 3 5
+# 2 1
+
+hist(biz_sil[,3],
+     breaks = 20)
+
+```
+So...the extras throw things off. Notice that 2, 3, and 5 are rather well correlated. Is that the issue?
+
+
+Also: Try hclust() with Ward.D2 method. Use cuttree() to determine cluster membership.
+```{r}
+hclust(d = diss_mat_red, 
+       method = "ward.D2") -> 
+  biz_hcl
+
+as.matrix(
+  silhouette(x = cutree(biz_hcl,
+                        k = 6),    # Class membership
+           dist = diss_mat_red)) ->             # distance matrix
+  biz_sil
+length(which(biz_sil[,3] < 0)) 
+# 2  3
+# 3 12
+# 4 43
+# 5 26
+# 6 19
+# 7 27
+# 8 33
+
+
+cutree(biz_hcl,
+       k = 8) ->
+  biz_tree
+
+
+table(biz_tree)
+#   1   2 
+# 415  25 
+# 
+#   1   2   3 
+# 293 122  25 
+# 
+#   1   2   3   4 
+# 194  99 122  25
+# 
+#   1   2   3   4   5 
+# 194  99 115   7  25
+# 
+#   1   2   3   4   5   6 
+# 194  99 115   7   4  21 
+# 
+#   1   2   3   4   5   6   7 
+# 194  99  71  44   7   4  21 
+# 
+#   1   2   3   4   5   6   7   8 
+#  77  99  71 117  44   7   4  21 
+ 
+```
+No help
+
+So, it appears that (a) removing things that covary too much (I don't know exactly how much is too much) without covarying perfectly improves the silhouette profile. So, that should be done before clustering. After that, the standard hclust() works as well as anything else, although we should investigate with some real data, as TANSTAAFL almost certainly applies.
+
+Perhaps some Bayesian style clustering by choosing the least covarying and slowing adding in more variables? Or setting the centers early and then working forward?
+
+And, this is putting way too much faith in power laws, but...
+```{r}
+unname(
+  table(biz_cl$cluster))
+library(igraph)
+fit_power_law(
+    unname(
+      table(biz_cl$cluster)))
+```
+So, using the full set gives a really good power law fit. Using the reduced set gives an almost as good power law fit. Should we accept that?
+
+Dave Pincus (12 May 2023) was not surprised by the IPL, for two reasons. One was that clustering is sort of like factor analysis which tends towards an IPL. The second is prior work (Pincus & Metten, 2010; Pincus & Guastello, 2013).
+
+
+# Wildfire Data
+Let's explore the wildfire dataset
+```{r}
+read.csv(here("Data/wildfire1.csv")) ->
+  wildfire_df
+
+# For ease of pivoting
+str_replace_all(colnames(wildfire_df),
+                "SL_DUR.",
+                "SLDUR_") ->
+  colnames(wildfire_df)
+
+library(tidyverse)
+# Long data frame
+wildfire_df %>%
+  pivot_longer(
+    cols = PTGI_Day_1:SLDUR_Day_30,
+    cols_vary = "slowest",
+    names_to = c(".value", "day"),
+    names_pattern = "(.*)_Day_(.*)") -> 
+  long_wildfire_df
+```
+
+Now, to cluster from the long
+```{r}
+# No NA allowed
+
+long_wildfire_df %>%
+  na.omit() ->
+  long_wildfire_df
+
+library(parallelDist)
+library(cluster)
+parallelDist(as.matrix(
+  long_wildfire_df[,10:14])) ->
+  diss_mat
+
+
+16 -> max_num
+list() -> clus_dist
+rep(0, max_num - 1) -> bad_sil
+rep(0, max_num - 1) -> sil_mean
+nrow(long_wildfire_df) ->
+  clus_dist[[1]]
+
+for(nclust in 2:max_num) {
+  cat(nclust,"\n")
+  set.seed(42)
+  kmeans(diss_mat,
+         centers = nclust,
+         nstart = 100) ->
+    wf_cl
+  as.matrix(
+    silhouette(x = wf_cl$cluster,    # Class membership
+             dist = diss_mat)) ->             # distance matrix
+    wf_sil
+  table(wf_cl$cluster) -> clus_dist[[nclust]]
+  length(which(wf_sil[,3] < 0)) -> bad_sil[nclust]
+  mean(wf_sil[,3],
+       na.rm = TRUE) -> sil_mean[nclust] 
+}
+```
+nclust = 14 did not converge in 10 iterations
+
+```{r}
+clus_dist
+data.frame("Number_of_Clusters" = 1:16,
+           "Negative_Silhouette" = bad_sil,
+           "Mean_Silhouette" = round(sil_mean, 3))
+```
+
+Let's try ToMATo
+```{r}
+list() -> wf_ls
+1 -> mini
+300 -> maxi
+mini - 1 -> offset
+
+parallelDist(as.matrix(
+  long_wildfire_df[mini:maxi,10:14])) ->
+  diss_mat
+
+#for(index in 1:nrow(long_wildfire_df)) {
+for(index in mini:maxi) {
+  as.double(
+    unname(
+    as.vector(
+      unlist(
+        long_wildfire_df[index,10:14])))) -> 
+          wf_ls[[index - offset]]
+}
+
+cl <- Tomato$new()
+cl$fit(wf_ls)
+cl$fit_predict(wf_ls)
+# This error comes up once (but it seems it only does once per session if
+#  python is done through R)
+# /Users/barneyricca/OneDrive - University of Colorado Colorado
+# Springs/Projects in Progress/Ricca - EWS (ISTSS 
+# 2023)/my_env/lib/python3.11/site-packages/gudhi/point_cloud/dtm.py:168:
+# RuntimeWarning: divide by zero encountered in reciprocal
+#   density = dtm ** (-dim / q)
+
+cl$plot_diagram()
+# Error in grid.Call.graphics(C_setviewport, vp, TRUE) : 
+#   non-finite location and/or size for viewport
+
+cl$set_n_clusters(length(unique(cl$fit_predict(wf_ls))))
+#cl$fit_predict(wf_ls)
+#table(cl$fit_predict(wf_ls))
+
+#cl$get_labels()
+
+#diss_mat
+
+
+
+as.matrix(
+  silhouette(x = cl$fit_predict(wf_ls),    # Class membership
+           dist = diss_mat)) ->             # distance matrix
+  wf_sil
+
+table(cl$get_labels())
+length(which(wf_sil[,3] < 0))
+
+hist(as.numeric(iris_sil[,3]),
+     breaks = 20,
+     main = "Histogram of iris cluster silhouettes",
+     xlab = "Silouette values")
+
+```
+Again, ToMATo isn't the way to go. That makes a certain amount of sense, given the way that ToMATo works. (The same thing is true with the hierarchical clustering.) K-means clustering starts with the group centers and does sort of a greedy search to fill the clusters from the centers out. The other two look for nearest neighbors and agglomerates the matches, without regard to how close something is to the nearest center.
+
+So, let's pick a value for the number of clusters and work with that. IF (that's a big if) each cluster is a part of only one trajectory, that would be great, but the hurricane results reject that possibility. Still, similar clusters should have smaller overall variances, so that should benefit the EWS approaches.
+
+Given the silhouette numbers, I'm going to start with 4 clusters (although I can make a case for 6 or 16 as well)
+
