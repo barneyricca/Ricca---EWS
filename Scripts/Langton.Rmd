@@ -72,7 +72,7 @@ plot(ants_df$X,
      xlab = "Time",
      ylab = "X")
 lines(ants_df$Y,
-     col = "green")
+     col = "blue")
 
 ```
 
@@ -80,18 +80,69 @@ lines(ants_df$Y,
 
 First, find the classical changepoints with mean and variance
 ```{r}
+library(changepoint)                        # Find classical changepoints
+
+cpt.mean(ants_df$Y)                         # Find changepoints in means
+cpt.mean(ants_df$X)
+
+plot(ants_df$X,                             # Plot as above
+     ylim = c(-35,60),
+     type = 'l',
+     xlab = "Time",
+     ylab = "X")
+lines(ants_df$Y,
+     col = "blue")
+abline(v = cpt.mean(ants_df$X,
+                    method = "SegNeigh",
+                    penalty = "AIC")@cpts,        # Draw vertical lines at cpts
+       col = "black")
+abline(v = cpt.mean(ants_df$Y,
+                    method = "SegNeigh",
+                    penalty = "AIC")@cpts, 
+       col = "blue")
 
 ```
 
+Wolpert (199x) - "The "No Free Lunch" Theorem"
+
+How do we know the change is "real"? Each method finds different changepoints.
+
+HW 1: Do this with cpt.vars() in place of cpt.mean()
+
+How can we anticipate the change without false positives and false negatives?
 
 Now, let's find the changepoints via windowed entropy or something like that.
-```{r}
 
+Windowed entropy is promising, but there are others. ML/AI? Etc. Recall:
+
+$ S = -k \sum_i p_i log p_i$
+
+Window size: Pick one and see what happens.
+
+To find the probabilities, because the ant only works with integers, we can use the table() function. (One approach to continuous values is to define bins, like in a histogram.)
+
+```{r}
+table(ants_df$X[1:2000]) -> x2000      # Don't look everywhere yet
+table(ants_df$Y[1:2000]) -> y2000      # Don't look everywhere yet
+x2000
+y2000
+
+table(ants_df$X[1:2000],                # Joint, mutual counts
+      ants_df$Y[1:2000]) -> xy2000
+xy2000
+
+xy2000 / sum(xy2000) ->                 # Probabilities
+  pxy2000
+
+pxy2000
 ```
 
 # Early Warning Signal
 
+Remember: Windowed entropy becomes a maximum. (When windowed entropy increases, we get an EWS.)
 
+HW2: Calculate windowed entropies for the ant's X and Y. Try different window sizes. Whatever.
 
+Thinking: From your playing around in HW2, how can we remove false positives?
 
 

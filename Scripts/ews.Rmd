@@ -7,7 +7,7 @@ output: word_document
 This document is mostly an introduction to *package:EWSmethods* followed by some how-to instructions on creating simulated time series data.
 ```{r setup}
 #| include: FALSE                           # The "modern" way to do this.
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE) 
 
 c("conflicted",                             # resolve name conflicts
 #  "correlation",                            # multilevel correlations
