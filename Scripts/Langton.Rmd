@@ -10,6 +10,7 @@ date: "2025-01-21"
 knitr::opts_chunk$set(echo = TRUE)
 
 library(data.table)
+library(magrittr)
 library(here)
 ```
 
@@ -144,6 +145,8 @@ Remember: Windowed entropy becomes a maximum. (When windowed entropy increases, 
 HW2: Calculate windowed entropies for the ant's X and Y. Try different window sizes. Whatever.
 
 Thinking: From your playing around in HW2, how can we remove false positives?
+
+
 a) Window size adjustments
 b) Additional data streams
 
@@ -205,15 +208,127 @@ ent_calc(ants_df$X, 16, time_steps) ->
 
 
 HW 3:
-- How to access a vector (like prob_online) by name, not index
+
+How can we smooth this out?
+- Try larger windows?
+- Moving average of the entropy
+- Other things...
+
+# Patches
+
+I'm thinking that there must be something about the patches...distribution, location, something. Let's try that. I can think of two possibilities:
+
+1. distance from [35,30] (use the taxicab distance for ease)
+2. entropy of total number visited sites
 
 
+```{r EarliestVisitTimes}
+matrix(0,
+       nrow = diff(range(patches_df$X)) + 1,
+       ncol = diff(range(patches_df$Y)) + 1) ->
+  visited_mat
+
+NA -> 
+  patches_df$Xshift ->
+  patches_df$Yshift
+-min(patches_df$X) + 1 -> 
+  xmin
+patches_df$X + xmin ->
+  patches_df$Xshift
+-min(patches_df$Y) + 1 -> 
+  ymin
+patches_df$Y + ymin ->
+  patches_df$Yshift
+
+data.frame(Time = 0:max(patches_df$Time),
+           X = rep(0, max(patches_df$Time) + 1),
+           Y = rep(0, max(patches_df$Time) + 1),
+           Dist = rep(0, max(patches_df$Time) + 1)) ->
+  earliest_df
+
+for(index in 1:nrow(patches_df)) {
+  patches_df$Xshift[index] -> X
+  patches_df$Yshift[index] -> Y
+  patches_df$Time[index] -> time
+  if(visited_mat[X,Y] == 0) {
+    time ->
+      visited_mat[X,Y]
+    X -> earliest_df$X[time]
+    Y -> earliest_df$Y[time]
+  }
+}
+
+# By visual inspection of visited_mat, the starting point is at [35,30]. 
+0.1 -> visited_mat[35,30]                   # Marks start; can't be zero
+
+earliest_df[-which(earliest_df$X == 0 & earliest_df$Y == 0),] ->
+  earliest_df
+```
 
 
+```{r taxicab}
+30 -> y_start
+35 -> x_start
+
+for(index in 1:nrow(earliest_df)) {
+  abs(earliest_df$X[index] - x_start) +
+    abs(earliest_df$Y[index] - y_start) ->
+    earliest_df$Dist[index]
+}
+```
 
 
+```{r taxicabPlots}
+earliest_df %$%
+  plot(Time, Dist,
+       type = 'l',
+       ylim = c(-30,90))
+ants_df %$%
+#  filter(Time %in% earliest_df$Time) %$%
+  lines(Time, X, col = "blue")
+ants_df %$%
+#  filter(Time %in% earliest_df$Time) %$%
+  lines(Time, Y, col = "forestgreen")
+legend(0, 95, 
+       legend = c("Taxicab", "X", "Y"),
+       fill = c("black", "blue", "forestgreen"))
+```
 
+Ah...
 
+1. Notice that distance tracks opposite X and Y. (When X & Y go up, the taxicab distance goes down.) *At least, that is true until about timestep 8500 or so.*
+2. According to the taxicab distance there appear to be TWO transitions after timesetp 10000. I think that the second occurs when the path crosses the starting Y value, but check this.
+
+## Patch entropy
+
+Let's start with just the probabilities of a patch being black, white, or not-yet-visited, and calculate entropy from those three. (We can do windowed entropy later.)
+
+patches_df has the set of which patches are "black":
+head(patches_df)
+    Time     X     Y Xshift Yshift
+   <int> <int> <int>  <num>  <num>
+1:     0     1     0     35     30
+2:     1     1     0     35     30
+3:     1     1    -1     35     29
+4:     2     1     0     35     30
+5:     2     0    -1     34     29
+6:     2     1    -1     35     29
+
+earliest_df has which patches have been visited:
+head(earliest_df)
+  Time  X  Y Dist
+1    0 35 29    1
+2    1 34 29    2
+3    2 34 30    1
+5    4 35 31    1
+6    5 36 31    2
+7    6 36 30    1
+
+There are some problems: These (neither of the Xshift and X or Yshift and Y pairs line up at Time = 1, for example) don't line up exactly. I don't know why, but let's fix that first.
+
+```{r}
+
+```
 
 
 
